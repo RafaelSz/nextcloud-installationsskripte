@@ -40,10 +40,12 @@ ${touch} /etc/motd
 ${figlet} nextcloud > /etc/motd
 ${touch} /etc/motd
 ${cat} <<EOF >> /etc/motd
-                 
-      (c) Carsten Rieger IT-Services
-           https://www.c-rieger.de
-           
+
+  ----------------------------
+  <NAME> SERVER <FIRMA>
+  SUPPORT@PCZEIM.DE
+  ----------------------------
+   
 EOF
 
 # Log /nextcloud-installation/indtall.log
