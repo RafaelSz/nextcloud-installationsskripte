@@ -596,7 +596,7 @@ array (
 'timeout' => 0.0,
 ),
 'quota_include_external_storage' => false,
-'share_folder' => '/Freigaben',
+'share_folder' => '/Shares',
 'skeletondirectory' => '',
 'trashbin_retention_obligation' => 'auto, 7',
 );
