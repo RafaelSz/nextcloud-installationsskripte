@@ -1,14 +1,14 @@
 #!/bin/bash
 
-  ----------------------------
-  NEXTCLOUD INSTALL SCRIPT
-  ----------------------------
+#  ----------------------------
+#  NEXTCLOUD INSTALL SCRIPT
+#  ----------------------------
    
 #
 # PREPARE
 #
 
-# System paths
+
 addaptrepository=$(which add-apt-repository)
 adduser=$(which adduser)
 apt=$(which apt)
@@ -33,7 +33,7 @@ touch=$(which touch)
 usermod=$(which usermod)
 wget=$(which wget)
 
-# System settings
+
 ${apt} install -y figlet
 figlet=$(which figlet)
 ${touch} /etc/motd
@@ -51,14 +51,14 @@ EOF
 # Log /nextcloud-installation/indtall.log
 exec > >(tee -i "/nextcloud-installation/install.log")
 exec 2>&1
-# global funktions
+
 function update_and_clean() {
   ${apt} update -q4
   ${apt} upgrade -yq4
   ${apt} autoclean -yq4
   ${apt} autoremove -yq4
   }
-# cosmetics
+
 CrI() {
   while ps "$!" > /dev/null; do
   echo -n '.'
@@ -66,7 +66,7 @@ CrI() {
   done
   ${echo} ''
   }
-# -
+
 function setHOLD() {
   ${aptmark} hold nginx*
   ${aptmark} hold redis*
@@ -74,14 +74,14 @@ function setHOLD() {
   ${aptmark} hold php*
   ${aptmark} hold php8.0-*
   }
-# -
+
 function restart_all_services() {
   ${service} nginx restart
   ${service} mysql restart
   ${service} redis-server restart
   ${service} php8.0-fpm restart
   }
-# -
+
 function nextcloud_scan_data() {
   ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ files:scan --all'
   ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ files:scan-app-data'
@@ -90,32 +90,32 @@ function nextcloud_scan_data() {
 # START
 # 
 ${echo} 'Acquire::ForceIPv4 "true";' >> /etc/apt/apt.conf.d/99force-ipv4
-# -
+
 ${apt} install -y curl gpg 
 ${apt} install -y apt-transport-https bash-completion bzip2 ca-certificates debian-archive-keyring dirmngr ffmpeg ghostscript git gnupg gnupg2 htop \
 libfontconfig1 libfuse2 locate lsb-release libfile-fcntllock-perl net-tools screen sudo software-properties-common ssl-cert smbclient socat tree wget unzip zip & CrI
-# -
+
 ${systemctl} mask sleep.target suspend.target hibernate.target hybrid-sleep.target
-# -
+
 /usr/bin/curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
 ${echo} "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" | tee /etc/apt/sources.list.d/nginx.list
-# -
+
 ${echo} "deb https://packages.sury.org/php/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/php.list
 ${wget} -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-# -
+
 ${wget} https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
 ${chmod} +x mariadb_repo_setup
 ./mariadb_repo_setup --mariadb-server-version="mariadb-10.6"
-# -
+
 update_and_clean
-# -
+
 ${apt} remove -y apache2 nginx nginx-common nginx-full --allow-change-held-packages
 ${rm} -Rf /etc/apache2 /etc/nginx
-# -
+
 ${apt} install -yq4 nginx & CrI
-# -
+
 ${systemctl} enable nginx.service
-# -
+
 ${mv} /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
 ${touch} /etc/nginx/nginx.conf
 ${cat} <<EOF >/etc/nginx/nginx.conf
@@ -151,42 +151,42 @@ http {
   include /etc/nginx/conf.d/*.conf;
   }
 EOF
-# -
+
 ${service} nginx restart
-# -
+
 ${mkdir} -p /var/log/nextcloud /var/www/letsencrypt/.well-known/acme-challenge /etc/letsencrypt/rsa-certs /etc/letsencrypt/ecc-certs
-# -
+
 ${chmod} -R 775 /var/www/letsencrypt
 ${chmod} -R 770 /etc/letsencrypt
 ${chown} -R www-data:www-data /var/log/nextcloud /var/www/ /etc/letsencrypt
-# -
+
 ${adduser} --disabled-login --gecos "" acmeuser
-# -
+
 ${usermod} -aG www-data acmeuser
-# -
+
 ${sed} -i '$aacmeuser ALL=NOPASSWD: /bin/systemctl reload nginx.service' /etc/sudoers
 ${su} - acmeuser -c "/usr/bin/curl https://get.acme.sh | sh"
 ${su} - acmeuser -c ".acme.sh/acme.sh --set-default-ca --server letsencrypt"
-# -
+
 ${apt} update -q4 & CrI
-# -
+
 ${apt} install -yq4 php8.0-{fpm,gd,mysql,curl,xml,zip,intl,mbstring,bz2,ldap,apcu,bcmath,gmp,imagick,igbinary,redis,smbclient,cli,common,opcache,readline} imagemagick ldap-utils nfs-common cifs-utils & CrI
-# -
-# -
+
+
 AvailableRAM=$(/usr/bin/awk '/MemAvailable/ {printf "%d", $2/1024}' /proc/meminfo)
 AverageFPM=$(/usr/bin/ps --no-headers -o 'rss,cmd' -C php-fpm8.0 | /usr/bin/awk '{ sum+=$1 } END { printf ("%d\n", sum/NR/1024,"M") }')
 FPMS=$((AvailableRAM/AverageFPM))
 PMaxSS=$((FPMS*2/3))
 PMinSS=$((PMaxSS/2))
 PStartS=$(((PMaxSS+PMinSS)/2))
-# -
+
 ${cp} /etc/php/8.0/fpm/pool.d/www.conf /etc/php/8.0/fpm/pool.d/www.conf.bak
 ${cp} /etc/php/8.0/fpm/php-fpm.conf /etc/php/8.0/fpm/php-fpm.conf.bak
 ${cp} /etc/php/8.0/cli/php.ini /etc/php/8.0/cli/php.ini.bak
 ${cp} /etc/php/8.0/fpm/php.ini /etc/php/8.0/fpm/php.ini.bak
 ${cp} /etc/php/8.0/fpm/php-fpm.conf /etc/php/8.0/fpm/php-fpm.conf.bak
 ${cp} /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.bak
-# -
+
 ${sed} -i 's/;env\[HOSTNAME\] = /env[HOSTNAME] = /' /etc/php/8.0/fpm/pool.d/www.conf
 ${sed} -i 's/;env\[TMP\] = /env[TMP] = /' /etc/php/8.0/fpm/pool.d/www.conf
 ${sed} -i 's/;env\[TMPDIR\] = /env[TMPDIR] = /' /etc/php/8.0/fpm/pool.d/www.conf
@@ -228,14 +228,14 @@ ${sed} -i 's/rights=\"none\" pattern=\"EPS\"/rights=\"read|write\" pattern=\"EPS
 ${sed} -i 's/rights=\"none\" pattern=\"PDF\"/rights=\"read|write\" pattern=\"PDF\"/' /etc/ImageMagick-6/policy.xml
 ${sed} -i 's/rights=\"none\" pattern=\"XPS\"/rights=\"read|write\" pattern=\"XPS\"/' /etc/ImageMagick-6/policy.xml
 /usr/bin/ln -s /usr/local/bin/gs /usr/bin/gs
-# -
+
 ${service} php8.0-fpm restart
 ${service} nginx restart
-# -
+
 ${apt} update -q4 & CrI
-# -
+
 ${apt} install -yq4 mariadb-server & CrI
-# -
+
 ${service} mysql stop
 ${mv} /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
 ${cat} <<EOF >/etc/mysql/my.cnf
@@ -315,9 +315,9 @@ quote-names
 [isamchk]
 key_buffer = 16M
 EOF
-# -
+
 ${service} mysql restart
-# -
+
 mysql=$(which mysql)
 ${mysql} <<EOF
 CREATE DATABASE nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
@@ -330,12 +330,12 @@ ${echo} ""
 ${echo} " Your database server will now be hardened - just follow the instructions."
 ${echo} " Keep in mind: your MariaDB root password is still NOT set!"
 ${echo} ""
-# -
+
 mysqlsecureinstallation=$(which mysql_secure_installation)
 ${mysqlsecureinstallation}
-# -
+
 ${apt} update -q4 & CrI
-# -
+
 ${apt} install -yq4 redis-server & CrI
 ${cp} /etc/redis/redis.conf /etc/redis/redis.conf.bak
 ${sed} -i 's/port 6379/port 0/' /etc/redis/redis.conf
@@ -344,16 +344,16 @@ ${sed} -i 's/unixsocketperm 700/unixsocketperm 770/' /etc/redis/redis.conf
 ${sed} -i 's/# maxclients 10000/maxclients 512/' /etc/redis/redis.conf
 ${cp} /etc/sysctl.conf /etc/sysctl.conf.bak
 ${sed} -i '$avm.overcommit_memory = 1' /etc/sysctl.conf
-# -
+
 ${usermod} -a -G redis www-data
-# -
+
 ${apt} install -yq4 ssl-cert & CrI
-# -
+
 [ -f /etc/nginx/conf.d/default.conf ] && ${mv} /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak
 ${touch} /etc/nginx/conf.d/default.conf
 ${touch} /etc/nginx/conf.d/http.conf
 ${cat} <<EOF >/etc/nginx/conf.d/http.conf
-# -
+
 upstream php-handler {
   server unix:/run/php/php8.0-fpm.sock;
   }
@@ -371,7 +371,7 @@ upstream php-handler {
       }
     }
 EOF
-# -
+
 ${cat} <<EOF >/etc/nginx/conf.d/nextcloud.conf
 server {
   listen 443 ssl http2 default_server;
@@ -477,25 +477,25 @@ server {
     }
 }
 EOF
-# -
+
 /usr/bin/openssl dhparam -dsaparam -out /etc/ssl/certs/dhparam.pem 4096
-# -
+
 ${sed} -i "s/server_name YOUR.DEDYN.IO;/server_name $(hostname);/" /etc/nginx/conf.d/http.conf
 ${sed} -i "s/server_name YOUR.DEDYN.IO;/server_name $(hostname);/" /etc/nginx/conf.d/nextcloud.conf
-# -
+
 (/usr/bin/crontab -u www-data -l ; echo "*/5 * * * * /usr/bin/php -f /var/www/nextcloud/cron.php > /dev/null 2>&1") | /usr/bin/crontab -u www-data -
-# -
+
 ${service} nginx restart
-# -
+
 ${wget} https://download.nextcloud.com/server/releases/latest.tar.bz2
 ${tar} -xjf latest.tar.bz2 -C /var/www
-# -
+
 ${chown} -R www-data:www-data /var/www/
-# -
+
 ${rm} -f latest.tar.bz2
-# -
+
 update_and_clean
-# -
+
 restart_all_services
 ${clear}
 ${echo} "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -533,23 +533,23 @@ ${echo} "Your NEXTCLOUD will now be installed silently - please be patient ..."
 ${echo} ""
 # NEXTCLOUD INSTALLATION "silently"
 ${su} - www-data -s /bin/bash -c "/usr/bin/php /var/www/nextcloud/occ maintenance:install --database mysql --database-name 'nextcloud' --database-user 'nextcloud' --database-pass 'nextcloud' --admin-user '$NEXTCLOUDADMINUSER' --admin-pass '$NEXTCLOUDADMINUSERPASSWORD' --data-dir '$NEXTCLOUDDATAPATH'"
-# -
+
 declare -l YOURSERVERNAME
 YOURSERVERNAME=$(hostname)
-# -
+
 ${cp} /var/www/nextcloud/config/config.php /var/www/nextcloud/config/config.php.bak
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ config:system:set trusted_domains 0 --value=$HOSTNAME'
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ config:system:set overwrite.cli.url --value=https://$HOSTNAME'
 ${echo} ""
 ${echo} "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-# -
+
 ${cp} /var/www/nextcloud/.user.ini /usr/local/src/.user.ini.bak
-# -
+
 ${sed} -i 's/output_buffering=.*/output_buffering=0/' /var/www/nextcloud/.user.ini
 ${chown} -R www-data:www-data /var/www
-# -
+
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ background:cron'
-# -
+
 ${sed} -i '/);/d' /var/www/nextcloud/config/config.php
 ${cat} <<EOF >>/var/www/nextcloud/config/config.php
 'activity_expire_days' => 14,
@@ -598,17 +598,17 @@ array (
 'trashbin_retention_obligation' => 'auto, 7',
 );
 EOF
-# -
+
 ${sed} -i 's/^[ ]*//' /var/www/nextcloud/config/config.php
-# -
+
 ${chown} -R www-data:www-data /var/www
-# -
+
 restart_all_services
-# -
+
 ${apt} update -q4 & CrI
-# -
+
 ${apt} install -yq4 fail2ban & CrI
-# -
+
 ${touch} /etc/fail2ban/filter.d/nextcloud.conf
 ${cat} <<EOF >/etc/fail2ban/filter.d/nextcloud.conf
 [Definition]
@@ -633,37 +633,37 @@ logpath = /var/log/nextcloud/nextcloud.log
 [nginx-http-auth]
 enabled = true
 EOF
-# -
+
 ${apt} update -q4 & CrI
-# -
+
 ${apt} install -yq4 ufw & CrI
-# -
-# -
+
+
 ufw=$(which ufw)
 ${ufw} allow 80/tcp
-# -
+
 ${ufw} allow 443/tcp
-# -
+
 ${ufw} allow 22/tcp
-# -
+
 ${ufw} logging medium && ufw default deny incoming && ufw enable
-# -
+
 ${service} ufw restart
 ${service} fail2ban restart
 ${service} redis-server restart
-# -
+
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ app:disable survey_client'
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ app:disable firstrunwizard'
-# -
+
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ app:enable admin_audit'
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ app:enable files_pdfviewer'
-# -
+
 rediscli=$(which redis-cli)
 ${rediscli} -s /var/run/redis/redis-server.sock <<EOF
 FLUSHALL
 quit
 EOF
-# -
+
 ${service} nginx stop
 clear
 ${echo} "---------------------------------"
@@ -675,15 +675,15 @@ ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ db:add-mis
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ db:add-missing-columns'
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ db:convert-filecache-bigint'
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/occ security:certificates:import /etc/ssl/certs/ssl-cert-snakeoil.pem'
-# -
+
 nextcloud_scan_data
-# -
+
 restart_all_services
-# -
+
 ${su} - www-data -s /bin/bash -c '/usr/bin/php /var/www/nextcloud/cron.php'
-# -
+
 setHOLD
-# -
+
 # ${clear}
 ${echo} ""
 ${echo} "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
